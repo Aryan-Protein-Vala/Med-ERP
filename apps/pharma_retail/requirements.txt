@@ -1,0 +1,2 @@
+# pharma_retail python dependencies
+# erpnext and frappe are handled by bench

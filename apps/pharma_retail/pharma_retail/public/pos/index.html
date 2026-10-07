@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PharmaRetail POS - Enterprise B2B Clinical Management & Counter Billing</title>
+  <link rel="stylesheet" href="pos.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%230D9488%22 stroke-width=%222.5%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22><path d=%22M12 2v20M2 12h20%22/></svg>">
+</head>
+<body>
+
+  <!-- Top Enterprise Navigation Bar -->
+  <header class="top-navbar">
+    <div class="brand-block">
+      <div class="brand-icon-box" title="PharmaRetail Enterprise">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 2v20M2 12h20"/>
+        </svg>
+      </div>
+      <div class="brand-text-col">
+        <div class="brand-title">
+          <span id="pharmacy-name-display">Aarogya MediPoint Pharmacy</span>
+          <span class="badge-flat badge-in-stock">GST Verified</span>
+        </div>
+        <div class="brand-meta-line">
+          <span>DL: <strong id="dl-numbers-display">20B/MH-28491 | 21B/MH-28492</strong></span>
+          <span>•</span>
+          <span>GSTIN: <strong id="gstin-display">27AABCP1234F1ZM</strong></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Center Status Indicator -->
+    <div class="top-center-status">
+      <div class="status-beacon">
+        <span class="beacon-dot"></span>
+        <span>Local FEFO Engine Active</span>
+      </div>
+      <div class="top-clock" id="live-clock">
+        <span id="clock-time">--:--:--</span>
+      </div>
+    </div>
+
+    <!-- Right Control Anchors (Zero Emojis, Pure Line SVGs) -->
+    <div class="top-actions">
+      <button class="icon-button" id="theme-toggle-btn" onclick="POS.toggleTheme()" title="Toggle Interface Mode">
+        <svg id="theme-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+        </svg>
+        <span id="theme-icon" style="display:none;">dark</span>
+      </button>
+
+      <button class="icon-button" onclick="POS.openSettingsModal()" title="Hardware & Store Configuration">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+      </button>
+
+      <div class="clerk-pill">
+        <div class="clerk-avatar" id="cashier-avatar">C1</div>
+        <span class="clerk-name" id="cashier-name">Counter Clerk</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- App Wrapper: Auto-folding Sidebar + Main Multi-page Workspace -->
+  <div class="app-wrapper">
+
+    <!-- Auto-folding Left Sidebar (68px idle -> 240px expanded on hover) -->
+    <nav class="app-sidebar" id="app-sidebar">
+      <div class="sidebar-nav-group">
+        <!-- Module 1: Counter POS -->
+        <a class="nav-item active" id="nav-pos" onclick="POS.switchView('pos')">
+          <div class="nav-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="3" width="20" height="14" rx="2"/>
+              <line x1="8" y1="21" x2="16" y2="21"/>
+              <line x1="12" y1="17" x2="12" y2="21"/>
+            </svg>
+          </div>
+          <span class="nav-label">Billing Counter</span>
+        </a>
+
+        <!-- Module 2: Clinical Inventory -->
+        <a class="nav-item" id="nav-inventory" onclick="POS.switchView('inventory')">
+          <div class="nav-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+              <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+              <line x1="12" y1="22.08" x2="12" y2="12"/>
+            </svg>
+          </div>
+          <span class="nav-label">Clinical Inventory</span>
+        </a>
+
+        <!-- Salt Substitutes Discovery Tool -->
+        <a class="nav-item" id="nav-substitutes" onclick="POS.switchView('substitutes')">
+          <div class="nav-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="16 3 21 3 21 8"/>
+              <line x1="4" y1="20" x2="21" y2="3"/>
+              <polyline points="21 16 21 21 16 21"/>
+              <line x1="15" y1="15" x2="21" y2="21"/>
+              <line x1="4" y1="4" x2="9" y2="9"/>
+            </svg>
+          </div>
+          <span class="nav-label">Salt Substitutes</span>
+        </a>
+
+        <!-- Module 3: Owner Analytics -->
+        <a class="nav-item" id="nav-analytics" onclick="POS.switchView('analytics')">
+          <div class="nav-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="20" x2="18" y2="10"/>
+              <line x1="12" y1="20" x2="12" y2="4"/>
+              <line x1="6" y1="20" x2="6" y2="14"/>
+            </svg>
+          </div>
+          <span class="nav-label">Owner Analytics</span>
+        </a>
+
+        <!-- Chronic Care CRM -->
+        <a class="nav-item" id="nav-crm" onclick="POS.switchView('crm')">
+          <div class="nav-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/>
+              <circle cx="12" cy="7" r="4"/>
+            </svg>
+          </div>
+          <span class="nav-label">Chronic Care CRM</span>
+        </a>
+
+        <!-- Taxation & GST -->
+        <a class="nav-item" id="nav-gst" onclick="POS.switchView('gst')">
+          <div class="nav-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+              <line x1="16" y1="13" x2="8" y2="13"/>
+              <line x1="16" y1="17" x2="8" y2="17"/>
+            </svg>
+          </div>
+          <span class="nav-label">GST & Invoices</span>
+        </a>
+      </div>
+
+      <div class="sidebar-bottom">
+        <a class="nav-item" onclick="POS.openShortcutsModal()">
+          <div class="nav-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+              <line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+          </div>
+          <span class="nav-label">System Shortcuts</span>
+        </a>
+      </div>
+    </nav>
+
+    <!-- Main Workspace Container -->
+    <main class="app-main">
+
+      <!-- ====================================================================
+           VIEW 1: MODULE 1 - THE HIGH-SPEED BILLING COUNTER (SPLIT-PANE POS)
+           ==================================================================== -->
+      <section class="view-pane active" id="view-pos">
+        <div class="pos-container">
+
+          <!-- Left Pane (60%): Running Bill Invoice Table & Patient Info -->
+          <div class="pos-left-pane">
+
+            <!-- Patient Metadata Strip -->
+            <div class="patient-meta-strip">
+              <div class="input-group-inline">
+                <svg class="input-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                <input type="text" class="clean-input" id="patient-name" placeholder="Patient Name (Walk-in)" autocomplete="off">
+              </div>
+
+              <div class="input-group-inline" style="max-width: 170px;">
+                <svg class="input-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                <input type="tel" class="clean-input" id="patient-phone" placeholder="Mobile Number" autocomplete="off">
+              </div>
+
+              <div class="input-group-inline" style="max-width: 170px;">
+                <svg class="input-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/></svg>
+                <input type="text" class="clean-input" id="doctor-name" placeholder="Prescribing Doctor" autocomplete="off">
+              </div>
+
+              <input type="hidden" id="patient-age-sex" value="Adult">
+              <span class="badge-flat badge-in-stock" id="schedule-warning-tag" style="display:none;">Schedule H1</span>
+            </div>
+
+            <!-- Bill Table -->
+            <div class="bill-table-container">
+              <table class="bill-table">
+                <thead>
+                  <tr>
+                    <th style="width: 32%;">Item / Formulation</th>
+                    <th style="width: 18%;">Batch & Expiry</th>
+                    <th style="width: 14%; text-align: center;">Qty</th>
+                    <th class="num" style="width: 12%;">Rate (₹)</th>
+                    <th class="num" style="width: 10%;">GST</th>
+                    <th class="num" style="width: 12%;">Total (₹)</th>
+                    <th style="width: 2%;"></th>
+                  </tr>
+                </thead>
+                <tbody id="cart-tbody">
+                  <!-- Rendered dynamically by POS.renderCart() -->
+                </tbody>
+              </table>
+
+              <div class="cart-empty-state" id="cart-empty-state">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="9" cy="21" r="1"/>
+                  <circle cx="20" cy="21" r="1"/>
+                  <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+                </svg>
+                <p style="font-size: 13px; font-weight: 500;">Invoice cart is currently empty</p>
+                <span style="font-size: 11.5px;">Type medicine brand name or scan barcode to add lines</span>
+              </div>
+            </div>
+
+            <!-- Bottom Counter Bar -->
+            <div class="pos-left-footer">
+              <div style="display: flex; gap: 8px; align-items: center;">
+                <button class="btn-secondary-flat" onclick="POS.holdBill()">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                  <span>Hold Bill</span>
+                  <span class="badge-flat badge-amber" id="held-count-badge" style="display:none;">0</span>
+                </button>
+                <button class="btn-secondary-flat" onclick="POS.confirmNewBill()">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px;"><polyline points="1 4 1 10 7 10"/><polyline points="23 20 23 14 17 14"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>
+                  <span>New Invoice</span>
+                </button>
+              </div>
+
+              <div style="font-size: 11.5px; color: var(--text-muted);">
+                <span>Invoice: <strong id="invoice-number-display" style="font-family: var(--font-mono); color: var(--text-primary);">INV-2026-0001</strong></span>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Right Pane (40%): Search Bar, Salt Substitutes & Grand Total Checkout -->
+          <div class="pos-right-pane">
+
+            <!-- Prominent Central Search Container -->
+            <div class="pos-search-box">
+              <div class="prominent-search-bar">
+                <svg class="search-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="11" cy="11" r="8"/>
+                  <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                </svg>
+                <input type="text" class="prominent-search-input" id="med-search-input" placeholder="Search medicines, generic salt formulation, or scan..." autocomplete="off">
+              </div>
+
+              <!-- Real-time Search Dropdown -->
+              <div class="search-results-dropdown" id="search-dropdown">
+                <!-- Injected dynamically -->
+              </div>
+            </div>
+
+            <!-- Slide-Over Salt Substitutes Drawer (Triggered on out-of-stock brand) -->
+            <div class="substitutes-slideover" id="salt-substitutes-drawer">
+              <div class="drawer-header">
+                <div class="drawer-title">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 16px; height: 16px; color: var(--primary);">
+                    <polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/>
+                  </svg>
+                  <span>In-Stock Salt Substitutes</span>
+                </div>
+                <button class="icon-button" onclick="POS.closeSubstitutesDrawer()" title="Close Drawer">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+              </div>
+
+              <div class="target-drug-context">
+                <div>
+                  <div class="target-drug-text" id="target-brand-name">Requested Drug (Out of Stock)</div>
+                  <div style="font-size: 11px; color: var(--tag-amber-text);" id="target-salt-composition">Active Salt Formulation</div>
+                </div>
+                <span class="badge-flat badge-out-stock" id="target-mrp">Stock: 0</span>
+              </div>
+
+              <div class="substitutes-list-body" id="substitute-cards-list">
+                <!-- Rendered dynamically by POS -->
+              </div>
+            </div>
+
+            <div id="drawer-backdrop" onclick="POS.closeSubstitutesDrawer()" style="display:none;"></div>
+
+            <!-- Instant Checkout Totals & Payment Matrix -->
+            <div class="checkout-card-container">
+
+              <!-- Tax & Subtotal Breakdown Card -->
+              <div class="tax-summary-grid">
+                <div class="summary-row">
+                  <span>Subtotal Taxable Value</span>
+                  <span style="font-family: var(--font-mono); font-weight: 500;" id="summary-subtotal">₹ 0.00</span>
+                </div>
+                <div class="summary-row" style="display:none;">
+                  <span>Items Count</span>
+                  <span id="summary-items-count">0</span>
+                </div>
+                <div class="summary-row" style="display:none;">
+                  <span>Discount</span>
+                  <span id="summary-discount">₹ 0.00</span>
+                </div>
+                <div class="summary-row" style="display:none;">
+                  <span>Taxable Base</span>
+                  <span id="gst-taxable-val">0.00</span>
+                </div>
+                <div class="summary-row">
+                  <span>CGST Total</span>
+                  <span style="font-family: var(--font-mono);" id="gst-cgst-val">₹ 0.00</span>
+                </div>
+                <div class="summary-row">
+                  <span>SGST Total</span>
+                  <span style="font-family: var(--font-mono);" id="gst-sgst-val">₹ 0.00</span>
+                </div>
+                <div class="summary-row total-tax-row">
+                  <span>Total GST (CGST + SGST)</span>
+                  <span style="font-family: var(--font-mono); font-weight: 600;" id="gst-total-val">₹ 0.00</span>
+                </div>
+                <div class="summary-row" style="font-size: 11px; color: var(--text-muted);">
+                  <span>Round Off</span>
+                  <span style="font-family: var(--font-mono);" id="summary-roundoff">₹ 0.00</span>
+                </div>
+              </div>
+
+              <!-- Massive Bold Final Grand Total Display -->
+              <div class="grand-total-hero">
+                <div class="grand-total-label-col">
+                  <span class="grand-total-label">Grand Total (INR)</span>
+                  <span style="font-size: 11px; color: var(--text-muted);" id="active-payment-label">Payment: CASH</span>
+                </div>
+                <div class="grand-total-amount" id="summary-grand-total">₹ 0.00</div>
+              </div>
+
+              <!-- Payment Method Selection Tabs -->
+              <div class="payment-tabs-group">
+                <button class="payment-tab-btn selected" id="pay-btn-cash" onclick="POS.setPaymentMethod('Cash')">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px;"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/></svg>
+                  <span>Cash</span>
+                </button>
+                <button class="payment-tab-btn" id="pay-btn-upi" onclick="POS.setPaymentMethod('UPI')">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px;"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                  <span>UPI QR</span>
+                </button>
+                <button class="payment-tab-btn" id="pay-btn-card" onclick="POS.setPaymentMethod('Card')">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px;"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+                  <span>Card</span>
+                </button>
+                <button class="payment-tab-btn" id="pay-btn-credit" onclick="POS.setPaymentMethod('Credit')">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/></svg>
+                  <span>Ledger</span>
+                </button>
+              </div>
+
+              <!-- Cash Tendered Hidden Box for modal -->
+              <div id="tendered-box" style="display:none;">
+                <input type="number" id="cash-tendered-input" value="0">
+                <span id="cash-change-display">0.00</span>
+              </div>
+
+              <!-- Complete Sale Action Button -->
+              <button class="btn-complete-sale" id="checkout-btn" onclick="POS.openCheckoutModal()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+                <span>Complete Sale & Print Receipt</span>
+              </button>
+
+            </div>
+
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ====================================================================
+           VIEW 2: MODULE 2 - CLINICAL INVENTORY & BATCH CONTROL VIEW
+           ==================================================================== -->
+      <section class="view-pane" id="view-inventory">
+        <div class="module-page-container">
+          <div class="page-header-row">
+            <div class="page-title-block">
+              <h1 class="page-title">Clinical Inventory & Batch Audit</h1>
+              <span class="page-subtitle">Real-time stock master across 250,000+ medicines with strict FEFO batch tracking</span>
+            </div>
+            <button class="btn-complete-sale" style="height: 36px; padding: 0 16px; font-size: 12.5px;" onclick="POS.switchView('pos')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px;"><path d="M12 5v14M5 12h14"/></svg>
+              <span>New Counter Bill</span>
+            </button>
+          </div>
+
+          <!-- Minimal Flush Filter Controls -->
+          <div class="filter-bar-card">
+            <div class="filter-search-input">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 15px; height: 15px; color: var(--text-muted); margin-right: 8px;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input type="text" class="clean-input" id="inventory-search-input" oninput="POS.filterInventoryTable()" placeholder="Filter by brand, formulation, or manufacturer...">
+            </div>
+
+            <select class="minimal-select" id="inv-filter-class" onchange="POS.filterInventoryTable()">
+              <option value="">All Therapeutic Classes</option>
+              <option value="Analgesic">Analgesic / Antipyretic</option>
+              <option value="Antibiotic">Antibiotic</option>
+              <option value="Anti-Diabetic">Anti-Diabetic</option>
+              <option value="Anti-Hypertensive">Anti-Hypertensive</option>
+              <option value="Nutraceutical">Nutraceutical</option>
+              <option value="Medical Device">Medical Device</option>
+            </select>
+
+            <select class="minimal-select" id="inv-filter-stock" onchange="POS.filterInventoryTable()">
+              <option value="">All Stock Levels</option>
+              <option value="in_stock">Currently In Stock</option>
+              <option value="out_of_stock">Out of Stock (Zero)</option>
+            </select>
+          </div>
+
+          <!-- High-Density Clinical Grid -->
+          <div class="clinical-data-card">
+            <table class="clinical-table">
+              <thead>
+                <tr>
+                  <th style="width: 25%;">Medicine Name</th>
+                  <th style="width: 25%;">Generic Salt Composition</th>
+                  <th style="width: 15%;">Manufacturer</th>
+                  <th style="width: 10%;">Primary Batch</th>
+                  <th style="width: 10%;">Expiry Date</th>
+                  <th class="num" style="width: 7%;">Stock</th>
+                  <th class="num" style="width: 8%;">Rate (₹)</th>
+                  <th style="text-align: center; width: 10%;">Status</th>
+                </tr>
+              </thead>
+              <tbody id="inventory-tbody">
+                <!-- Rendered dynamically by POS.renderInventoryView() -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ====================================================================
+           VIEW 3: SALT SUBSTITUTES DISCOVERY WORKSPACE
+           ==================================================================== -->
+      <section class="view-pane" id="view-substitutes">
+        <div class="module-page-container">
+          <div class="page-header-row">
+            <div class="page-title-block">
+              <h1 class="page-title">Generic Salt Substitute Discovery</h1>
+              <span class="page-subtitle">Identify equivalent bio-similar formulations and in-stock generic alternatives</span>
+            </div>
+          </div>
+
+          <div class="filter-bar-card" style="margin-bottom: 24px;">
+            <div class="filter-search-input" style="flex: 1; height: 42px;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 17px; height: 17px; color: var(--text-muted); margin-right: 10px;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input type="text" class="clean-input" id="salt-explorer-input" oninput="POS.exploreSaltSubstitutes()" placeholder="Type medicine or chemical salt (e.g., Paracetamol 650mg, Pantoprazole 40mg)...">
+            </div>
+          </div>
+
+          <div id="salt-explorer-results" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 16px;">
+            <!-- Rendered dynamically -->
+          </div>
+        </div>
+      </section>
+
+      <!-- ====================================================================
+           VIEW 4: MODULE 3 - THE STRATEGIC SHOP OWNER DASHBOARD
+           ==================================================================== -->
+      <section class="view-pane" id="view-analytics">
+        <div class="module-page-container">
+          <div class="page-header-row">
+            <div class="page-title-block">
+              <h1 class="page-title">Executive Shop Operations Dashboard</h1>
+              <span class="page-subtitle">Financial performance, stock turnover velocity, and MARG ERP migration control</span>
+            </div>
+          </div>
+
+          <!-- Minimalist Metric Cards (Isolated 4-column grid) -->
+          <div class="metrics-grid-4">
+            <div class="metric-card">
+              <div class="metric-header">
+                <span class="metric-label">Gross Revenue (Today)</span>
+                <span class="metric-trend-tag positive">+14.2%</span>
+              </div>
+              <div class="metric-num">₹ 1,84,650</div>
+              <span style="font-size: 11.5px; color: var(--text-muted);">Against 426 completed sales</span>
+            </div>
+
+            <div class="metric-card">
+              <div class="metric-header">
+                <span class="metric-label">Net Margin Estimate</span>
+                <span class="metric-trend-tag positive">24.5%</span>
+              </div>
+              <div class="metric-num">₹ 45,239</div>
+              <span style="font-size: 11.5px; color: var(--text-muted);">Trade margin post-GST split</span>
+            </div>
+
+            <div class="metric-card">
+              <div class="metric-header">
+                <span class="metric-label">Low Stock Reorders</span>
+                <span class="metric-trend-tag warning">14 Items</span>
+              </div>
+              <div class="metric-num">14 SKUs</div>
+              <span style="font-size: 11.5px; color: var(--text-muted);">Below minimum threshold level</span>
+            </div>
+
+            <div class="metric-card">
+              <div class="metric-header">
+                <span class="metric-label">Chronic Refills Due</span>
+                <span class="metric-trend-tag warning">3-Day Window</span>
+              </div>
+              <div class="metric-num">28 Patients</div>
+              <span style="font-size: 11.5px; color: var(--text-muted);">WhatsApp reminder queue ready</span>
+            </div>
+          </div>
+
+          <!-- Flat Data Visualizations Split -->
+          <div class="dashboard-split-grid">
+            <div class="dashboard-panel-card">
+              <div class="panel-card-title">7-Day Retail Inflow Trajectory (₹ in Lakhs)</div>
+              
+              <!-- Clean Flat Solid Bars (No 3D, No Neon Glows) -->
+              <div class="flat-bars-chart">
+                <div class="bar-col"><div class="bar-rect" style="height: 60%;"></div><span class="bar-label">Thu</span></div>
+                <div class="bar-col"><div class="bar-rect" style="height: 75%;"></div><span class="bar-label">Fri</span></div>
+                <div class="bar-col"><div class="bar-rect" style="height: 90%;"></div><span class="bar-label">Sat</span></div>
+                <div class="bar-col"><div class="bar-rect" style="height: 85%;"></div><span class="bar-label">Sun</span></div>
+                <div class="bar-col"><div class="bar-rect" style="height: 70%;"></div><span class="bar-label">Mon</span></div>
+                <div class="bar-col"><div class="bar-rect" style="height: 80%;"></div><span class="bar-label">Tue</span></div>
+                <div class="bar-col"><div class="bar-rect" style="height: 95%;"></div><span class="bar-label">Today</span></div>
+              </div>
+
+              <div style="display: flex; justify-content: space-between; font-size: 12px; color: var(--text-muted); padding-top: 4px;">
+                <span>Total Weekly Turnover: <strong>₹ 11,48,200</strong></span>
+                <span>FEFO Stock Pick Accuracy: <strong>99.8%</strong></span>
+              </div>
+            </div>
+
+            <!-- Quick-Action: MARG ERP Data Migration Container -->
+            <div class="dashboard-panel-card">
+              <div class="panel-card-title">Legacy MARG ERP Migration</div>
+              <p style="font-size: 12px; color: var(--text-muted); line-height: 1.4;">
+                Seamlessly ingest 250,000+ items directly from your previous desktop software into this cloud ERP.
+              </p>
+
+              <div class="migration-dropzone-container" onclick="document.getElementById('csv-file-input').click()">
+                <div class="migration-icon-box">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 20px; height: 20px;">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="17 8 12 3 7 8"/>
+                    <line x1="12" y1="3" x2="12" y2="15"/>
+                  </svg>
+                </div>
+                <div class="migration-title">Upload MARG Master CSV</div>
+                <div class="migration-desc">Drag & drop or click to stream transactional batches of 1,000 rows</div>
+                <input type="file" id="csv-file-input" accept=".csv" style="display:none;" onchange="POS.handleMargFileUpload(event)">
+              </div>
+
+              <div id="migration-status-box" style="font-size: 11.5px; color: var(--text-muted); text-align: center;">
+                Status: Ingestion pipeline idle & ready
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ====================================================================
+           VIEW 5: CHRONIC CARE CRM & 3-DAY REFILL REMINDERS
+           ==================================================================== -->
+      <section class="view-pane" id="view-crm">
+        <div class="module-page-container">
+          <div class="page-header-row">
+            <div class="page-title-block">
+              <h1 class="page-title">Patient Prescription & Chronic Care CRM</h1>
+              <span class="page-subtitle">Automated retention engine identifying patients whose medication expires in 3 days</span>
+            </div>
+            <button class="btn-complete-sale" style="height: 36px; padding: 0 16px; font-size: 12.5px;" onclick="POS.triggerRefillReminderJob()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px;"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+              <span>Dispatch Refill WhatsApp Reminders</span>
+            </button>
+          </div>
+
+          <div class="clinical-data-card">
+            <table class="clinical-table">
+              <thead>
+                <tr>
+                  <th>Patient Name</th>
+                  <th>Contact Mobile</th>
+                  <th>Monitored Condition</th>
+                  <th>Prescribed Regimen</th>
+                  <th>Days Left</th>
+                  <th>Refill Dispatch Status</th>
+                  <th style="text-align: right;">Action</th>
+                </tr>
+              </thead>
+              <tbody id="crm-patients-tbody">
+                <!-- Rendered dynamically -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ====================================================================
+           VIEW 6: GST TAXATION AUDIT & INVOICES
+           ==================================================================== -->
+      <section class="view-pane" id="view-gst">
+        <div class="module-page-container">
+          <div class="page-header-row">
+            <div class="page-title-block">
+              <h1 class="page-title">Indian GST Taxation & Invoice Ledger</h1>
+              <span class="page-subtitle">Automated 5%, 12%, and 18% slab compliance with 50/50 CGST/SGST audit trail</span>
+            </div>
+          </div>
+
+          <div class="clinical-data-card">
+            <table class="clinical-table">
+              <thead>
+                <tr>
+                  <th>Invoice ID</th>
+                  <th>Date & Time</th>
+                  <th>Patient Name</th>
+                  <th>Payment Mode</th>
+                  <th class="num">Taxable Base</th>
+                  <th class="num">CGST</th>
+                  <th class="num">SGST</th>
+                  <th class="num">Grand Total</th>
+                  <th style="text-align: right;">Receipt</th>
+                </tr>
+              </thead>
+              <tbody id="gst-invoices-tbody">
+                <!-- Rendered dynamically -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ====================================================================
+           VIEW 7: STORE SETTINGS & HARDWARE PROFILE
+           ==================================================================== -->
+      <section class="view-pane" id="view-settings">
+        <div class="module-page-container" style="max-width: 800px;">
+          <div class="page-header-row">
+            <div class="page-title-block">
+              <h1 class="page-title">Store Profile & Hardware Configuration</h1>
+              <span class="page-subtitle">Drug License, GSTIN, and 80mm ESC/POS thermal receipt settings</span>
+            </div>
+          </div>
+
+          <div class="clinical-data-card" style="padding: 24px; display: flex; flex-direction: column; gap: 16px;">
+            <div>
+              <label style="font-size: 12px; font-weight: 600; color: var(--text-muted);">Pharmacy Legal Name</label>
+              <input type="text" class="clean-input" id="cfg-store-name" value="Aarogya MediPoint Pharmacy" style="height: 38px; border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 0 12px; margin-top: 4px;">
+            </div>
+
+            <div>
+              <label style="font-size: 12px; font-weight: 600; color: var(--text-muted);">Store Retail Address</label>
+              <input type="text" class="clean-input" id="cfg-store-address" value="Shop 4-5, Ground Floor, Sai Plaza, MG Road, Mumbai 400001" style="height: 38px; border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 0 12px; margin-top: 4px;">
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+              <div>
+                <label style="font-size: 12px; font-weight: 600; color: var(--text-muted);">Drug License Numbers (Form 20B/21B)</label>
+                <input type="text" class="clean-input" id="cfg-dl-nos" value="20B/MH-28491 | 21B/MH-28492" style="height: 38px; border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 0 12px; margin-top: 4px;">
+              </div>
+              <div>
+                <label style="font-size: 12px; font-weight: 600; color: var(--text-muted);">Indian GSTIN</label>
+                <input type="text" class="clean-input" id="cfg-gstin" value="27AABCP1234F1ZM" style="height: 38px; border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 0 12px; margin-top: 4px;">
+              </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+              <div>
+                <label style="font-size: 12px; font-weight: 600; color: var(--text-muted);">Contact Phone</label>
+                <input type="text" class="clean-input" id="cfg-phone" value="+91 98200 12345" style="height: 38px; border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 0 12px; margin-top: 4px;">
+              </div>
+              <div>
+                <label style="font-size: 12px; font-weight: 600; color: var(--text-muted);">Counter UPI VPA for Dynamic QR</label>
+                <input type="text" class="clean-input" id="cfg-upi-vpa" value="aarogyamed@icici" style="height: 38px; border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 0 12px; margin-top: 4px;">
+              </div>
+            </div>
+
+            <div style="padding-top: 12px; border-top: 1px solid var(--border-subtle); display: flex; justify-content: flex-end;">
+              <button class="btn-complete-sale" style="height: 40px; padding: 0 20px;" onclick="POS.saveStoreSettings()">
+                Save Store Profile
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+  </div>
+
+  <!-- ====================================================================
+       MODALS: Checkout, Shortcuts, Settings & Thermal Receipt
+       ==================================================================== -->
+
+  <!-- Checkout & 80mm ESC/POS Thermal Receipt Modal -->
+  <div class="modal-backdrop" id="checkout-modal">
+    <div class="clean-modal-box" style="max-width: 440px;">
+      <div class="modal-header-clean">
+        <span style="font-size: 14px; font-weight: 600;">80mm ESC/POS Thermal Receipt</span>
+        <button class="icon-button" onclick="POS.closeCheckoutModal()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="modal-body-clean" style="background: var(--bg-app); font-family: var(--font-mono); font-size: 11.5px; padding: 16px;">
+        <div id="modal-receipt-preview" style="background: #FFFFFF; color: #000000; padding: 14px; border: 1px solid var(--border-subtle); border-radius: var(--radius-md);">
+          <!-- Rendered dynamically -->
+        </div>
+      </div>
+      <div class="modal-footer-clean">
+        <button class="btn-secondary-flat" onclick="POS.closeCheckoutModal()">Close</button>
+        <button class="btn-complete-sale" style="height: 38px; padding: 0 16px;" onclick="POS.printThermalReceipt()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 15px; height: 15px;"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+          <span>Print Receipt</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- System Shortcuts Modal -->
+  <div class="modal-backdrop" id="shortcuts-modal">
+    <div class="clean-modal-box" style="max-width: 420px;">
+      <div class="modal-header-clean">
+        <span style="font-size: 14px; font-weight: 600;">System Navigation</span>
+        <button class="icon-button" onclick="POS.closeShortcutsModal()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="modal-body-clean" style="display: flex; flex-direction: column; gap: 8px;">
+        <div class="summary-row" style="padding: 6px 0; border-bottom: 1px solid var(--border-subtle);"><span>Focus Medicine Search</span><strong style="font-family: var(--font-mono);">F2 / /</strong></div>
+        <div class="summary-row" style="padding: 6px 0; border-bottom: 1px solid var(--border-subtle);"><span>Toggle Salt Substitutes</span><strong style="font-family: var(--font-mono);">F3</strong></div>
+        <div class="summary-row" style="padding: 6px 0; border-bottom: 1px solid var(--border-subtle);"><span>Cycle Payment Method</span><strong style="font-family: var(--font-mono);">F4</strong></div>
+        <div class="summary-row" style="padding: 6px 0; border-bottom: 1px solid var(--border-subtle);"><span>New / Reset Invoice</span><strong style="font-family: var(--font-mono);">Ctrl+N / F5</strong></div>
+        <div class="summary-row" style="padding: 6px 0; border-bottom: 1px solid var(--border-subtle);"><span>Complete Sale & Print</span><strong style="font-family: var(--font-mono);">F10 / Enter</strong></div>
+        <div class="summary-row" style="padding: 6px 0;"><span>Toggle Interface Mode</span><strong style="font-family: var(--font-mono);">Ctrl+M</strong></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings Modal Shim -->
+  <div class="modal-backdrop" id="settings-modal" style="display:none;"></div>
+  <div id="recall-modal" style="display:none;"><div id="recall-modal-body"></div></div>
+  <div id="toast-container" style="position:fixed; bottom:20px; right:20px; z-index:9999;"></div>
+
+  <!-- 80mm ESC/POS Thermal Receipt DOM (@media print) -->
+  <div id="receipt-print-area"></div>
+
+  <!-- POS Application Logic Script -->
+  <script src="pos.js"></script>
+</body>
+</html>

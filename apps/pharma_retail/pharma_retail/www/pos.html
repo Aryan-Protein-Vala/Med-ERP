@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ title or "PharmaRetail POS - High-Speed Pharmacy Counter Billing" }}</title>
+  
+  <!-- Frappe Asset Paths with relative fallback -->
+  <link rel="stylesheet" href="/assets/pharma_retail/pos/pos.css" onerror="this.onerror=null;this.href='pos.css';">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>+</text></svg>">
+
+  {% if csrf_token %}
+  <meta name="csrf-token" content="{{ csrf_token }}">
+  {% endif %}
+</head>
+<body>
+
+  <!-- Top Pharmacy Navigation Header -->
+  <header class="pos-header">
+    <div class="brand-section">
+      <div class="brand-logo" title="PharmaRetail POS">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 2v20M2 12h20"/>
+        </svg>
+      </div>
+      <div class="brand-info">
+        <div class="brand-name">
+          <span id="pharmacy-name-display">{{ (pos_settings and pos_settings.store_name) or "Aarogya MediPoint Pharmacy" }}</span>
+          <span class="badge badge-in-stock" style="font-size: 10px; padding: 1px 6px;">GST Compliant</span>
+        </div>
+        <div class="brand-compliance">
+          <span>DL: <strong id="dl-numbers-display">{{ (pos_settings and pos_settings.dl_numbers) or "20B/MH-28491 | 21B/MH-28492" }}</strong></span>
+          <span>•</span>
+          <span>GSTIN: <strong id="gstin-display">{{ (pos_settings and pos_settings.gstin) or "27AABCP1234F1ZM" }}</strong></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Keyboard Shortcut Bar -->
+    <div class="header-hotkeys">
+      <div class="hotkey-item" id="hk-help" onclick="POS.openShortcutsModal()" title="Help Cheatsheet">
+        <span class="kbd">F1</span> Help
+      </div>
+      <div class="hotkey-item" id="hk-search" onclick="POS.focusSearch()" title="Focus Search">
+        <span class="kbd">F2</span> Search
+      </div>
+      <div class="hotkey-item" id="hk-substitutes" onclick="POS.toggleSubstitutesDrawer()" title="Salt Substitutes Drawer">
+        <span class="kbd">F3</span> Salt Sub
+      </div>
+      <div class="hotkey-item" id="hk-payment" onclick="POS.cyclePaymentMode()" title="Cycle Payment Mode">
+        <span class="kbd">F4</span> Pay Mode
+      </div>
+      <div class="hotkey-item" id="hk-new" onclick="POS.confirmNewBill()" title="New Bill">
+        <span class="kbd">F5</span> New
+      </div>
+      <div class="hotkey-item" id="hk-qty" onclick="POS.triggerEditQty()" title="Edit Qty">
+        <span class="kbd">F8</span> Qty
+      </div>
+      <div class="hotkey-item" id="hk-del" onclick="POS.deleteActiveRow()" title="Delete Selected Item">
+        <span class="kbd">F9</span> Del
+      </div>
+      <div class="hotkey-item active" id="hk-checkout" onclick="POS.openCheckoutModal()" title="Checkout & Print">
+        <span class="kbd kbd-primary">F10</span> Checkout
+      </div>
+    </div>
+
+    <!-- Right Controls: Clock, Theme, Settings, Clerk Profile -->
+    <div class="header-controls">
+      <div class="terminal-clock" id="live-clock">
+        <span class="status-dot" title="Online & Ready"></span>
+        <span id="clock-time">--:--:--</span>
+      </div>
+
+      <button class="header-btn" id="theme-toggle-btn" onclick="POS.toggleTheme()" title="Toggle Dark/Light Mode (Ctrl+M)">
+        <span id="theme-icon"></span>
+        <span class="kbd" style="font-size: 9px;">Ctrl+M</span>
+      </button>
+
+      <button class="header-btn" onclick="POS.openSettingsModal()" title="Store & Hardware Settings">
+        ️ Settings
+      </button>
+
+      <div class="cashier-badge">
+        <div class="cashier-avatar" id="cashier-avatar">{{ (pos_settings and pos_settings.cashier and pos_settings.cashier[0]|upper) or "C" }}</div>
+        <span id="cashier-name">{{ (pos_settings and pos_settings.cashier) or "Clerk-01" }}</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Patient & Prescription Metadata Bar -->
+  <section class="pos-patient-strip">
+    <div class="patient-inputs">
+      <div class="input-pill-group">
+        <label for="patient-name">Patient:</label>
+        <input type="text" id="patient-name" placeholder="Walk-in Patient" autocomplete="off">
+      </div>
+      <div class="input-pill-group">
+        <label for="patient-phone">Mobile:</label>
+        <input type="tel" id="patient-phone" placeholder="98765 43210" maxlength="10" autocomplete="off">
+      </div>
+      <div class="input-pill-group">
+        <label for="patient-age-sex">Age/Sex:</label>
+        <input type="text" id="patient-age-sex" placeholder="32 / M" style="width: 70px;" autocomplete="off">
+      </div>
+      <div class="input-pill-group">
+        <label for="doctor-name">Doctor:</label>
+        <input type="text" id="doctor-name" placeholder="Self / Dr. R. K. Gupta" autocomplete="off">
+      </div>
+    </div>
+
+    <div class="invoice-meta">
+      <div class="schedule-warning" id="schedule-warning-tag">
+        !️ <span>Schedule H/H1 Drugs Present (Rx Required)</span>
+      </div>
+      <div class="invoice-badge">
+        <span>BILL:</span>
+        <span id="invoice-number-display">INV-202610-0081</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Main POS Workspace Split View -->
+  <main class="pos-workspace">
+
+    <!-- LEFT PANE: Search, Barcode Wedge, Cart Table -->
+    <section class="pos-left">
+
+      <!-- Alphanumeric Real-time Search Box -->
+      <div class="search-container">
+        <div class="search-input-wrapper">
+          <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <input 
+            type="text" 
+            id="med-search-input" 
+            class="search-input" 
+            placeholder="Search by Brand Name, Salt Formulation, Barcode or Item Code... (Press F2 or scan barcode)" 
+            autocomplete="off"
+            spellcheck="false"
+          >
+          <div class="search-badges-right">
+            <span class="kbd">F2: Search</span>
+            <span class="kbd">↓↑: Navigate</span>
+            <span class="kbd kbd-primary">Enter: Add</span>
+          </div>
+        </div>
+
+        <!-- Real-Time Search Results Dropdown -->
+        <div class="search-dropdown" id="search-dropdown"></div>
+      </div>
+
+      <!-- Cart / Active Bill Table -->
+      <div class="cart-container">
+        <div class="cart-table-wrapper" id="cart-table-wrapper">
+          <table class="cart-table" id="cart-table">
+            <thead>
+              <tr>
+                <th style="width: 36px; text-align: center;">#</th>
+                <th>Medicine Description & Salt Formulation</th>
+                <th style="width: 100px;">Batch No</th>
+                <th style="width: 85px;">Expiry</th>
+                <th style="width: 80px;">Rack</th>
+                <th style="width: 115px; text-align: center;">Qty</th>
+                <th style="width: 75px; text-align: right;">MRP (₹)</th>
+                <th style="width: 75px; text-align: right;">Rate (₹)</th>
+                <th style="width: 60px; text-align: right;">Disc %</th>
+                <th style="width: 60px; text-align: right;">GST %</th>
+                <th style="width: 85px; text-align: right;">Amount (₹)</th>
+                <th style="width: 65px; text-align: center;">Action</th>
+              </tr>
+            </thead>
+            <tbody id="cart-tbody"></tbody>
+          </table>
+
+          <!-- Empty State -->
+          <div class="cart-empty-state" id="cart-empty-state">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
+              <line x1="3" y1="6" x2="21" y2="6"></line>
+              <path d="M16 10a4 4 0 0 1-8 0"></path>
+            </svg>
+            <div class="cart-empty-title">Cart is empty</div>
+            <div class="cart-empty-subtitle">
+              Press <span class="kbd">F2</span> to search medicines by brand or salt, or scan any barcode using your USB/Bluetooth wedge scanner.
+            </div>
+          </div>
+        </div>
+
+        <!-- Left Pane Bottom Bar: Barcode wedge indicator & shortcuts -->
+        <div class="cart-bottom-bar">
+          <div class="barcode-wedge-indicator">
+            <span class="barcode-pulse-dot" title="Barcode Wedge Listener Active"></span>
+            <span>USB/BT Barcode Scanner Active (&lt;30ms wedge)</span>
+            <button class="wedge-test-btn" onclick="POS.simulateBarcodeScan('8901234560012')" title="Simulate scanning Dolo 650">Scan Dolo</button>
+            <button class="wedge-test-btn" onclick="POS.simulateBarcodeScan('8901234560029')" title="Simulate scanning OOS Calpol 650 (Triggers Substitutes)">Scan OOS Calpol</button>
+            <button class="wedge-test-btn" onclick="POS.simulateBarcodeScan('8901234560050')" title="Simulate scanning OOS Augmentin 625">Scan OOS Augmentin</button>
+          </div>
+          <div class="flex gap-2 items-center">
+            <span style="font-size: 11px; color: var(--text-muted);">Shortcuts:</span>
+            <span class="kbd" onclick="POS.triggerEditQty()" title="Quick Edit Quantity">F8: Qty</span>
+            <span class="kbd" onclick="POS.deleteActiveRow()" title="Delete Selected Item">F9: Del</span>
+            <span class="kbd" onclick="POS.toggleSubstitutesDrawer()" title="Salt Substitutes">F3: Salt Sub</span>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- RIGHT PANE: Bill Summary, Taxes & Fast Checkout -->
+    <aside class="pos-right">
+
+      <!-- Summary Card -->
+      <div class="summary-card">
+        <div class="summary-header">
+          <span>Billing Summary</span>
+          <span id="summary-items-count" class="badge badge-info">0 Items (0 Units)</span>
+        </div>
+
+        <div class="summary-line">
+          <span>Gross Subtotal</span>
+          <span id="summary-subtotal" style="font-family: var(--font-mono); font-weight: 600;">₹0.00</span>
+        </div>
+
+        <div class="summary-line">
+          <span>Item Discounts</span>
+          <span id="summary-discount" style="font-family: var(--font-mono); color: #059669;">-₹0.00</span>
+        </div>
+
+        <!-- GST Breakdown (Mandatory Indian GST Layout) -->
+        <div class="gst-breakdown-box">
+          <div class="gst-row">
+            <span>Taxable Value:</span>
+            <span id="gst-taxable-val" style="font-family: var(--font-mono);">₹0.00</span>
+          </div>
+          <div class="gst-row">
+            <span>CGST (Central Tax):</span>
+            <span id="gst-cgst-val" style="font-family: var(--font-mono);">₹0.00</span>
+          </div>
+          <div class="gst-row">
+            <span>SGST (State Tax):</span>
+            <span id="gst-sgst-val" style="font-family: var(--font-mono);">₹0.00</span>
+          </div>
+          <div class="gst-row" style="font-weight: 700; color: var(--text-secondary); border-top: 1px dotted var(--border-strong); padding-top: 2px;">
+            <span>Total GST (CGST + SGST):</span>
+            <span id="gst-total-val" style="font-family: var(--font-mono);">₹0.00</span>
+          </div>
+        </div>
+
+        <div class="summary-line">
+          <span>Round Off</span>
+          <span id="summary-roundoff" style="font-family: var(--font-mono);">₹0.00</span>
+        </div>
+
+        <div class="summary-divider"></div>
+
+        <!-- Grand Total Box -->
+        <div class="grand-total-box">
+          <div class="grand-total-label">
+            <span>NET AMOUNT PAYABLE</span>
+            <span>Incl. of all taxes</span>
+          </div>
+          <div class="grand-total-amount" id="summary-grand-total">₹0.00</div>
+        </div>
+      </div>
+
+      <!-- Payment Mode Switcher (F4) -->
+      <div class="payment-section">
+        <div class="payment-label-row">
+          <span>Payment Mode (Press <span class="kbd">F4</span> to cycle)</span>
+          <span id="active-payment-label" class="badge badge-in-stock">Cash Mode</span>
+        </div>
+        <div class="payment-mode-grid">
+          <button class="payment-btn selected" id="pay-btn-cash" onclick="POS.setPaymentMode('cash')">
+            <div class="payment-btn-title"> Cash</div>
+            <div class="payment-btn-hotkey">[1] Exact Tender</div>
+          </button>
+          <button class="payment-btn" id="pay-btn-upi" onclick="POS.setPaymentMode('upi')">
+            <div class="payment-btn-title"> UPI / QR</div>
+            <div class="payment-btn-hotkey">[2] Dynamic QR</div>
+          </button>
+          <button class="payment-btn" id="pay-btn-card" onclick="POS.setPaymentMode('card')">
+            <div class="payment-btn-title"> Card / POS</div>
+            <div class="payment-btn-hotkey">[3] Swipe/Chip</div>
+          </button>
+          <button class="payment-btn" id="pay-btn-credit" onclick="POS.setPaymentMode('credit')">
+            <div class="payment-btn-title"> Due / Ledger</div>
+            <div class="payment-btn-hotkey">[4] Patient Khata</div>
+          </button>
+        </div>
+      </div>
+
+      <!-- Cash Tendered & Change Return Box -->
+      <div class="tendered-box" id="tendered-box">
+        <div class="tendered-row">
+          <label for="cash-tendered-input" style="font-size: 12px; font-weight: 600;">Cash Tendered:</label>
+          <div style="display: flex; align-items: center; gap: 4px;">
+            <span style="font-family: var(--font-mono); font-weight: 700;">₹</span>
+            <input type="number" id="cash-tendered-input" class="tendered-input" placeholder="0.00" min="0" step="1">
+          </div>
+        </div>
+        <div class="tendered-row">
+          <span style="font-size: 12px; font-weight: 600; color: var(--text-secondary);">Change Due:</span>
+          <span id="cash-change-display" class="change-amount">₹0.00</span>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="checkout-actions">
+        <button class="btn-checkout" id="checkout-main-btn" onclick="POS.openCheckoutModal()">
+          <span> Checkout &amp; Print Thermal Bill</span>
+          <span class="kbd kbd-primary" style="background: rgba(255,255,255,0.25); color: #fff; border-color: rgba(255,255,255,0.4);">F10</span>
+        </button>
+
+        <div class="secondary-actions-row">
+          <button class="btn-secondary-action" onclick="POS.holdCurrentBill()" title="Hold active bill (Ctrl+H)">
+            <span>️ Hold Bill</span>
+            <span class="kbd">Ctrl+H</span>
+          </button>
+          <button class="btn-secondary-action" onclick="POS.openRecallModal()" title="Recall held bills">
+            <span id="held-count-badge"> Held (0)</span>
+          </button>
+          <button class="btn-secondary-action danger" onclick="POS.confirmNewBill()" title="Clear bill (F5)">
+            <span>️ Clear</span>
+            <span class="kbd">F5</span>
+          </button>
+        </div>
+      </div>
+
+    </aside>
+
+  </main>
+
+  <!-- =========================================================================
+       CRITICAL REQUIREMENT: "SALT SUBSTITUTES" HELPER DRAWER (SLIDE-OVER UI)
+       ========================================================================= -->
+  <div class="drawer-backdrop" id="drawer-backdrop" onclick="POS.closeSubstitutesDrawer()"></div>
+  <aside class="salt-substitutes-drawer" id="salt-substitutes-drawer">
+    
+    <div class="drawer-header">
+      <div class="drawer-header-info">
+        <div class="drawer-badge-title">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v20M2 12h20"/></svg>
+          Salt Substitute Recommendation Engine
+        </div>
+        <div class="drawer-main-title">Exact Salt Alternatives</div>
+      </div>
+      <button class="drawer-close-btn" onclick="POS.closeSubstitutesDrawer()">
+        <span>Close</span>
+        <span class="kbd">Esc</span>
+      </button>
+    </div>
+
+    <!-- Target OOS Medicine Banner -->
+    <div class="drawer-target-banner" id="drawer-target-banner">
+      <div class="drawer-target-left">
+        <div class="drawer-target-name">
+          <span id="target-brand-name">Calpol 650</span>
+          <span class="badge badge-out-of-stock">OUT OF STOCK (0)</span>
+        </div>
+        <div class="drawer-target-salt" id="target-salt-composition">Paracetamol 650mg</div>
+      </div>
+      <div style="text-align: right;">
+        <div style="font-size: 11px; color: var(--danger-text);">Requested MRP:</div>
+        <div style="font-size: 15px; font-weight: 800; font-family: var(--font-mono); color: var(--danger-text);" id="target-mrp">₹34.50</div>
+      </div>
+    </div>
+
+    <div class="drawer-content" id="drawer-content">
+      <div class="substitutes-explanation">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="16" x2="12" y2="12"></line>
+          <line x1="12" y1="8" x2="12.01" y2="8"></line>
+        </svg>
+        <span>
+          The requested medicine is out of stock. Below are <strong>clinically equivalent in-stock substitutes</strong> formulated with the <strong>exact same active pharmaceutical ingredient (API)</strong> and dosage strength.
+        </span>
+      </div>
+
+      <!-- Substitutes List Container -->
+      <div class="substitute-cards-list" id="substitute-cards-list"></div>
+    </div>
+
+    <div class="drawer-footer-tips">
+      <div>Use <span class="kbd">↑</span> <span class="kbd">↓</span> to select, <span class="kbd kbd-primary">Enter</span> to substitute &amp; add</div>
+      <div><span class="kbd">Esc</span> to dismiss</div>
+    </div>
+  </aside>
+
+  <!-- MODALS: F1 SHORTCUTS CHEAT SHEET -->
+  <div class="modal-overlay" id="shortcuts-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title">
+          <span>️ POS Keyboard Navigation Cheatsheet</span>
+        </div>
+        <button class="drawer-close-btn" onclick="POS.closeShortcutsModal()">
+          <span class="kbd">Esc</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p style="margin-bottom: 14px; font-size: 13px; color: var(--text-secondary);">
+          This pharmacy POS is 100% keyboard-optimized so counter clerks never need to touch a mouse during high rush-hour billing.
+        </p>
+        <table class="hotkey-table">
+          <tbody>
+            <tr>
+              <td class="hotkey-key-col"><span class="kbd">F1</span></td>
+              <td class="hotkey-desc-col">Open this Keyboard Shortcuts cheat sheet modal</td>
+            </tr>
+            <tr>
+              <td class="hotkey-key-col"><span class="kbd">F2</span></td>
+              <td class="hotkey-desc-col">Focus alphanumeric search bar (auto-selects text)</td>
+            </tr>
+            <tr>
+              <td class="hotkey-key-col"><span class="kbd">F3</span></td>
+              <td class="hotkey-desc-col">Open / Toggle <strong>Salt Substitutes helper drawer</strong> for selected item</td>
+            </tr>
+            <tr>
+              <td class="hotkey-key-col"><span class="kbd">F4</span></td>
+              <td class="hotkey-desc-col">Cycle Payment Mode (Cash &rarr; UPI &rarr; Card &rarr; Credit Ledger)</td>
+            </tr>
+            <tr>
+              <td class="hotkey-key-col"><span class="kbd">F5</span> or <span class="kbd">Ctrl+N</span></td>
+              <td class="hotkey-desc-col">New Bill / Clear current cart (with confirmation)</td>
+            </tr>
+            <tr>
+              <td class="hotkey-key-col"><span class="kbd">F8</span></td>
+              <td class="hotkey-desc-col">Quick inline edit quantity for selected bill row</td>
+            </tr>
+            <tr>
+              <td class="hotkey-key-col"><span class="kbd">F9</span></td>
+              <td class="hotkey-desc-col">Remove selected item row from current bill</td>
+            </tr>
+            <tr>
+              <td class="hotkey-key-col"><span class="kbd">F10</span> or <span class="kbd">Ctrl+Enter</span></td>
+              <td class="hotkey-desc-col"><strong>Checkout &amp; Print 3-Inch (80mm) Thermal Receipt</strong></td>
+            </tr>
+            <tr>
+              <td class="hotkey-key-col"><span class="kbd">↑</span> / <span class="kbd">↓</span></td>
+              <td class="hotkey-desc-col">Navigate search dropdown, cart table rows, or drawer substitute cards</td>
+            </tr>
+            <tr>
+              <td class="hotkey-key-col"><span class="kbd">Enter</span></td>
+              <td class="hotkey-desc-col">Add selected medicine to cart, substitute item, or confirm action</td>
+            </tr>
+            <tr>
+              <td class="hotkey-key-col"><span class="kbd">+</span> / <span class="kbd">-</span></td>
+              <td class="hotkey-desc-col">Increment or decrement quantity of selected row in cart</td>
+            </tr>
+            <tr>
+              <td class="hotkey-key-col"><span class="kbd">Ctrl+H</span></td>
+              <td class="hotkey-desc-col">Hold current active bill and start a clean bill</td>
+            </tr>
+            <tr>
+              <td class="hotkey-key-col"><span class="kbd">Ctrl+M</span></td>
+              <td class="hotkey-desc-col">Toggle Dark Mode / Light Mode theme</td>
+            </tr>
+            <tr>
+              <td class="hotkey-key-col"><span class="kbd">Esc</span></td>
+              <td class="hotkey-desc-col">Close modals, dismiss Salt Substitutes drawer, or blur search bar</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-checkout" style="height: 36px; padding: 0 16px; font-size: 13px;" onclick="POS.closeShortcutsModal()">
+          Got it! [Esc]
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODALS: F10 CHECKOUT & THERMAL RECEIPT PREVIEW -->
+  <div class="modal-overlay" id="checkout-modal">
+    <div class="modal-card" style="max-width: 480px;">
+      <div class="modal-header">
+        <div class="modal-title">
+          <span> 3-Inch Thermal Receipt &amp; Payment</span>
+        </div>
+        <button class="drawer-close-btn" onclick="POS.closeCheckoutModal()">
+          <span class="kbd">Esc</span>
+        </button>
+      </div>
+      <div class="modal-body checkout-preview-content">
+        <div class="thermal-paper-preview" id="modal-receipt-preview"></div>
+      </div>
+      <div class="modal-footer" style="justify-content: space-between;">
+        <button class="btn-secondary-action" onclick="POS.closeCheckoutModal()">Cancel [Esc]</button>
+        <button class="btn-checkout" style="height: 42px; padding: 0 20px;" onclick="POS.printThermalReceipt()">
+          <span>️ Print Receipt &amp; Finish</span>
+          <span class="kbd kbd-primary" style="background: rgba(255,255,255,0.25); color: #fff;">Enter</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODALS: SETTINGS MODAL -->
+  <div class="modal-overlay" id="settings-modal">
+    <div class="modal-card" style="max-width: 520px;">
+      <div class="modal-header">
+        <div class="modal-title">
+          <span>️ Pharmacy Store &amp; Hardware Configuration</span>
+        </div>
+        <button class="drawer-close-btn" onclick="POS.closeSettingsModal()">
+          <span class="kbd">Esc</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="cfg-store-name">Pharmacy / Store Name:</label>
+          <input type="text" id="cfg-store-name" class="form-control" value="{{ (pos_settings and pos_settings.store_name) or 'Aarogya MediPoint Pharmacy' }}">
+        </div>
+        <div class="form-group">
+          <label for="cfg-store-address">Store Address &amp; City:</label>
+          <input type="text" id="cfg-store-address" class="form-control" value="{{ (pos_settings and pos_settings.store_address) or 'Shop 4-5, Ground Floor, Sai Plaza, MG Road, Mumbai 400001' }}">
+        </div>
+        <div class="flex gap-3">
+          <div class="form-group" style="flex: 1;">
+            <label for="cfg-dl-nos">Drug License (20B / 21B):</label>
+            <input type="text" id="cfg-dl-nos" class="form-control" value="{{ (pos_settings and pos_settings.dl_numbers) or '20B/MH-28491 | 21B/MH-28492' }}">
+          </div>
+          <div class="form-group" style="flex: 1;">
+            <label for="cfg-gstin">GSTIN:</label>
+            <input type="text" id="cfg-gstin" class="form-control" value="{{ (pos_settings and pos_settings.gstin) or '27AABCP1234F1ZM' }}">
+          </div>
+        </div>
+        <div class="flex gap-3">
+          <div class="form-group" style="flex: 1;">
+            <label for="cfg-phone">Phone Number:</label>
+            <input type="text" id="cfg-phone" class="form-control" value="{{ (pos_settings and pos_settings.phone) or '+91 98200 12345' }}">
+          </div>
+          <div class="form-group" style="flex: 1;">
+            <label for="cfg-upi-vpa">Store UPI ID (VPA):</label>
+            <input type="text" id="cfg-upi-vpa" class="form-control" value="{{ (pos_settings and pos_settings.upi_vpa) or 'aarogyamed@icici' }}">
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary-action" onclick="POS.closeSettingsModal()">Cancel</button>
+        <button class="btn-checkout" style="height: 38px; padding: 0 16px;" onclick="POS.saveSettings()">Save &amp; Apply</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODALS: RECALL HELD BILLS MODAL -->
+  <div class="modal-overlay" id="recall-modal">
+    <div class="modal-card" style="max-width: 500px;">
+      <div class="modal-header">
+        <div class="modal-title">
+          <span> Recall Held Bills</span>
+        </div>
+        <button class="drawer-close-btn" onclick="POS.closeRecallModal()">
+          <span class="kbd">Esc</span>
+        </button>
+      </div>
+      <div class="modal-body" id="recall-modal-body"></div>
+      <div class="modal-footer">
+        <button class="btn-secondary-action" onclick="POS.closeRecallModal()">Close [Esc]</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- 3-INCH (80mm) THERMAL RECEIPT PRINT AREA -->
+  <div id="receipt-print-area"></div>
+
+  <!-- Main POS Engine JS -->
+  <script src="/assets/pharma_retail/pos/pos.js" onerror="this.onerror=null;this.src='pos.js';"></script>
+</body>
+</html>

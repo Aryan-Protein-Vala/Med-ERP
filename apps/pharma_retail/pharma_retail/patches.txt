@@ -1,0 +1,2 @@
+# Patches for pharma_retail
+# Format: [execute:patch_method] or [patch_module_path]

@@ -1,0 +1,14 @@
+README.md
+setup.py
+pharma_retail/__init__.py
+pharma_retail/hooks.py
+pharma_retail.egg-info/PKG-INFO
+pharma_retail.egg-info/SOURCES.txt
+pharma_retail.egg-info/dependency_links.txt
+pharma_retail.egg-info/not-zip-safe
+pharma_retail.egg-info/top_level.txt
+pharma_retail/api/__init__.py
+pharma_retail/controllers/__init__.py
+pharma_retail/doctype/__init__.py
+pharma_retail/tasks/__init__.py
+pharma_retail/utils/__init__.py

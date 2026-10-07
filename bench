@@ -1,0 +1,96 @@
+#!/usr/bin/env bash
+# Bench CLI wrapper for Pharmacy ERP Bench
+set -e
+
+BENCH_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+export PYTHONPATH="$BENCH_DIR/apps/frappe:$BENCH_DIR/apps/erpnext:$BENCH_DIR/apps/pharma_retail:$PYTHONPATH"
+export FRAPPE_SITE="${FRAPPE_SITE:-pharmacy.local}"
+
+if [ -f "$BENCH_DIR/env/bin/python" ]; then
+    PYTHON_BIN="$BENCH_DIR/env/bin/python"
+else
+    PYTHON_BIN="python3"
+fi
+
+# Pre-parse --site <site> flag if followed by seed-pharma-db
+if [ "$1" = "--site" ]; then
+    export FRAPPE_SITE="$2"
+    shift 2
+    if [ "$1" = "seed-pharma-db" ] || [ "$1" = "seed_pharma_db" ]; then
+        shift
+        cd "$BENCH_DIR/sites" && exec "$PYTHON_BIN" -m frappe.utils.bench_helper frappe --site "$FRAPPE_SITE" seed-pharma-db "$@"
+    fi
+    set -- --site "$FRAPPE_SITE" "$@"
+fi
+
+case "$1" in
+    seed-pharma-db|seed_pharma_db)
+        shift
+        cd "$BENCH_DIR/sites" && exec "$PYTHON_BIN" -m frappe.utils.bench_helper frappe --site "$FRAPPE_SITE" seed-pharma-db "$@"
+        ;;
+    version)
+        "$PYTHON_BIN" -c "
+import frappe, erpnext, pharma_retail
+print(f'frappe {frappe.__version__}')
+print(f'erpnext {erpnext.__version__}')
+print(f'pharma_retail {pharma_retail.__version__}')
+"
+        ;;
+    list-apps|apps)
+        if [ -f "$BENCH_DIR/sites/apps.txt" ]; then
+            cat "$BENCH_DIR/sites/apps.txt"
+        else
+            echo "frappe"
+            echo "erpnext"
+            echo "pharma_retail"
+        fi
+        ;;
+    start)
+        echo "Starting Pharmacy ERP services via honcho/procfile..."
+        if [ -f "$BENCH_DIR/env/bin/honcho" ]; then
+            cd "$BENCH_DIR" && "$BENCH_DIR/env/bin/honcho" start
+        elif [ -f "$BENCH_DIR/run_pharma_erp.py" ]; then
+            "$PYTHON_BIN" "$BENCH_DIR/run_pharma_erp.py" --port 8000
+        else
+            cd "$BENCH_DIR/sites" && "$PYTHON_BIN" -m frappe.utils.bench_helper frappe serve --port 8000
+        fi
+        ;;
+    serve)
+        shift
+        PORT=8000
+        while [[ "$#" -gt 0 ]]; do
+            case $1 in
+                --port) PORT="$2"; shift ;;
+            esac
+            shift
+        done
+        echo "Starting Frappe webserver on port $PORT for site $FRAPPE_SITE..."
+        if [ -f "$BENCH_DIR/run_pharma_erp.py" ]; then
+            "$PYTHON_BIN" "$BENCH_DIR/run_pharma_erp.py" --port "$PORT"
+        else
+            cd "$BENCH_DIR/sites" && "$PYTHON_BIN" -m frappe.utils.bench_helper frappe serve --port "$PORT"
+        fi
+        ;;
+    run)
+        shift
+        if [ "$1" = "python" ] || [ "$1" = "python3" ]; then
+            shift
+        fi
+        cd "$BENCH_DIR/sites" && exec "$PYTHON_BIN" "$@"
+        ;;
+    test)
+        if [ -f "$BENCH_DIR/test_suite.py" ]; then
+            "$PYTHON_BIN" "$BENCH_DIR/test_suite.py"
+        else
+            echo "Running Frappe tests..."
+            cd "$BENCH_DIR/sites" && "$PYTHON_BIN" -m frappe.utils.bench_helper frappe --site "$FRAPPE_SITE" run-tests --app pharma_retail
+        fi
+        ;;
+    ingest)
+        shift
+        "$PYTHON_BIN" "$BENCH_DIR/apps/pharma_retail/pharma_retail/utils/importer.py" "$@"
+        ;;
+    *)
+        cd "$BENCH_DIR/sites" && "$PYTHON_BIN" -m frappe.utils.bench_helper frappe "$@"
+        ;;
+esac

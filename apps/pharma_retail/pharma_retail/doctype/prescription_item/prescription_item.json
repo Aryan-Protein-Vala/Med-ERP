@@ -1,0 +1,75 @@
+{
+ "actions": [],
+ "creation": "2026-10-06 18:00:00.000000",
+ "doctype": "DocType",
+ "document_type": "Document",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "item_code",
+  "item_name",
+  "dosage",
+  "frequency",
+  "days_supply",
+  "next_refill_date"
+ ],
+ "fields": [
+  {
+   "fieldname": "item_code",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Item Code",
+   "options": "Item",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "item_code.item_name",
+   "fieldname": "item_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Item Name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "dosage",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Dosage (e.g. 500mg, 10ml)"
+  },
+  {
+   "fieldname": "frequency",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Frequency",
+   "options": "Once Daily (OD)\nTwice Daily (BD)\nThrice Daily (TDS)\nFour Times Daily (QID)\nEvery Morning (1-0-0)\nMorning & Night (1-0-1)\nMorning, Afternoon, Night (1-1-1)\nAt Bedtime (HS)\nAs Needed (SOS)\nWeekly"
+  },
+  {
+   "default": "30",
+   "fieldname": "days_supply",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Days Supply",
+   "reqd": 1
+  },
+  {
+   "fieldname": "next_refill_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Next Refill Date"
+  }
+ ],
+ "idx": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-10-06 18:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Pharma Retail",
+ "name": "Prescription Item",
+ "naming_rule": "Random",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

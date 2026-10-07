@@ -1,0 +1,3 @@
+frappe
+erpnext
+pharma_retail
